@@ -25,12 +25,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         try {
             $stmt->execute();
-           
-            header("Location: customer.html");
+            
+            // --- THIS IS THE FIX ---
+            // It now redirects to the correct .php file
+            header("Location: customer.php"); 
             exit;
             
         } catch (mysqli_sql_exception $e) {
-           
+            
             if ($e->getCode() == 1062) {
                 $_SESSION['register_error'] = "This email address is already taken.";
             } else {
