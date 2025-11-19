@@ -2,6 +2,17 @@
 session_start();
 include 'db_connect.php';
 
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['remove_product_id'])) {
+    $remove_id = intval($_POST['remove_product_id']);
+    
+    if (isset($_SESSION['cart'][$remove_id])) {
+        unset($_SESSION['cart'][$remove_id]);
+    }
+    
+    header("Location: cart.php");
+    exit;
+}
+
 $cart_products = [];
 $total_price = 0;
 
@@ -16,7 +27,7 @@ if (isset($_SESSION['cart']) && !empty($_SESSION['cart'])) {
         $sql = "SELECT * FROM products WHERE id IN ($id_string)";
         $result = $conn->query($sql);
         
-        if ($result->num_rows > 0) {
+        if ($result && $result->num_rows > 0) {
             while ($row = $result->fetch_assoc()) {
                 $cart_products[] = $row;
             }
@@ -44,11 +55,10 @@ $conn->close();
     <header class="bg-white shadow-md sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="home.html" class="flex items-center space-x-2">
-                
                 <img src="Images/Trinity_Icon.png" 
-     alt="Trinity Cafe Logo" 
-     class="h-12 w-auto"
-     onerror="this.src='https://placehold.co/150x50/F0E68C/8B4513?text=Trinity+Cafe'; this.onerror=null;">
+                     alt="Trinity Cafe Logo" 
+                     class="h-12 w-auto"
+                     onerror="this.src='https://placehold.co/150x50/F0E68C/8B4513?text=Trinity+Cafe'; this.onerror=null;">
                 <span class="text-2xl font-bold text-yellow-700 hidden sm:block">Trinity Cafe</span>
             </a>
             <ul class="flex items-center space-x-6">
@@ -95,9 +105,6 @@ $conn->close();
                     ?>
                     <div class="flex flex-col md:flex-row items-center justify-between py-6 border-b">
                         <div class="flex items-center space-x-4 mb-4 md:mb-0">
-                            <!-- 
-                              This image is loaded from the database
-                            -->
                             <img src="<?php echo htmlspecialchars($product['image_url']); ?>" 
                                  alt="<?php echo htmlspecialchars($product['name']); ?>" 
                                  class="rounded-lg w-24 h-24 object-cover"
@@ -107,10 +114,21 @@ $conn->close();
                                 <p class="text-lg text-gray-600">RM <?php echo number_format($product['price'], 2); ?> (each)</p>
                             </div>
                         </div>
-                        <div class="flex items-center space-x-4">
-                            <p class="text-xl">Qty: <?php echo $quantity; ?></p>
-                            <p class="text-2xl font-semibold text-gray-800">RM <?php echo number_format($subtotal, 2); ?></p>
+                        
+                        <div class="flex items-center space-x-6">
+                            <div class="text-right">
+                                <p class="text-lg text-gray-600">Qty: <?php echo $quantity; ?></p>
+                                <p class="text-2xl font-semibold text-gray-800">RM <?php echo number_format($subtotal, 2); ?></p>
+                            </div>
+                            
+                            <form action="cart.php" method="POST">
+                                <input type="hidden" name="remove_product_id" value="<?php echo $product['id']; ?>">
+                                <button type="submit" class="text-red-500 hover:text-red-700 font-semibold text-sm underline">
+                                    Remove
+                                </button>
+                            </form>
                         </div>
+                        
                     </div>
                 <?php endforeach; ?>
 
