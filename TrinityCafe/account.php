@@ -11,20 +11,28 @@ $user_name = $_SESSION['user_name'];
 $user_id = $_SESSION['user_id'];
 
 $orders = [];
-$sql = "SELECT id, total_price, order_date 
-        FROM orders 
-        WHERE customer_email = (SELECT email FROM users WHERE id = ?)
-        ORDER BY order_date DESC";
-        
+$stmt_email = $conn->prepare("SELECT email FROM users WHERE id = ?");
+$stmt_email->bind_param("i", $user_id);
+$stmt_email->execute();
+$result_email = $stmt_email->get_result();
+$user_email = $result_email->fetch_assoc()['email'];
+
+$sql = "SELECT id, total_price, order_date FROM orders WHERE customer_email = ? ORDER BY order_date DESC";
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("s", $user_email);
 $stmt->execute();
 $result = $stmt->get_result();
+
 if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
         $orders[] = $row;
     }
 }
+
+$order_count = count($orders);
+$next_reward = 3 - ($order_count % 3);
+$show_discount = ($order_count > 0 && $order_count % 3 == 0);
+
 $conn->close();
 ?>
 <!DOCTYPE html>
@@ -46,11 +54,10 @@ $conn->close();
     <header class="bg-white shadow-md sticky top-0 z-50">
         <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
             <a href="home.html" class="flex items-center space-x-2">
-                
-                <img src="Images/Trinity_Icon.png" 
-     alt="Trinity Cafe Logo" 
-     class="h-12 w-auto"
-     onerror="this.src='https://placehold.co/150x50/F0E68C/8B4513?text=Trinity+Cafe'; this.onerror=null;">
+                <img src="images/Trinity_Icon.png" 
+                     alt="Trinity Cafe Logo" 
+                     class="h-12 w-auto"
+                     onerror="this.src='https://placehold.co/150x50/F0E68C/8B4513?text=Trinity+Cafe'; this.onerror=null;">
                 <span class="text-2xl font-bold text-yellow-700 hidden sm:block">Trinity Cafe</span>
             </a>
             <ul class="flex items-center space-x-6">
@@ -80,6 +87,29 @@ $conn->close();
             <a href="logout.php" class="bg-red-500 hover:bg-red-600 text-white text-lg font-semibold px-6 py-2 rounded-lg transition duration-300">
                 Logout
             </a>
+        </div>
+
+        <div class="mb-10">
+            <?php if ($show_discount): ?>
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-6 rounded shadow-md">
+                    <div class="flex items-center">
+                        <div class="text-4xl mr-4">🎉</div>
+                        <div>
+                            <p class="font-bold text-xl">Congratulations! You've unlocked a reward.</p>
+                            <p class="text-lg mt-1">You have made <?php echo $order_count; ?> orders. As a loyal customer, here is a discount code for your next purchase:</p>
+                            <div class="mt-3 inline-block bg-white px-4 py-2 rounded border border-yellow-300 font-mono text-2xl font-bold tracking-widest text-yellow-800 select-all">
+                                TRINITY3FREE
+                            </div>
+                            <p class="text-sm mt-2 text-yellow-700">* Show this code at the counter to redeem.</p>
+                        </div>
+                    </div>
+                </div>
+            <?php else: ?>
+                <div class="bg-blue-100 border-l-4 border-blue-500 text-blue-900 p-4 rounded shadow-sm">
+                    <p class="font-semibold">Loyalty Progress</p>
+                    <p>You have made <?php echo $order_count; ?> order(s). Make <strong><?php echo $next_reward; ?> more</strong> to unlock a special discount!</p>
+                </div>
+            <?php endif; ?>
         </div>
 
         <div class="bg-white rounded-lg shadow-lg p-8 w-full">
